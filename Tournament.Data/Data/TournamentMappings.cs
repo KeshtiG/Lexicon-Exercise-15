@@ -14,10 +14,13 @@ public class TournamentMappings : Profile
 
     public TournamentMappings()
     {
-        // Set up two-way mapping between DTOs and entities for tournaments and games
-        CreateMap<TournamentDto, TournamentDetails>().ReverseMap();
+        // Set up mapping between DTOs and entities for tournaments and games
         CreateMap<GameDto, Game>().ReverseMap();
-        CreateMap<UpdateTournamentDto, TournamentDetails>();
         CreateMap<UpdateGameDto, Game>();
+        CreateMap<CreateGameDto, Game>();
+
+        CreateMap<TournamentDto, TournamentDetails>().ReverseMap();
+        CreateMap<UpdateTournamentDto, TournamentDetails>();
+        CreateMap<CreateTournamentDto, TournamentDetails>();
     }
 }

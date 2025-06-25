@@ -19,24 +19,27 @@ public class TournamentRepository : ITournamentRepository
         _context = context;
     }
 
-    public void Add(TournamentDetails tournamentDetails)
+    public void Add(TournamentDetails tournament)
     {
-        _context.Add(tournamentDetails);
+        _context.Add(tournament);
     }
 
     public async Task<TournamentDetails> GetAsync(int id)
     {
-        var tournamentDetails = await _context.TournamentDetails.FindAsync(id);
-        if (tournamentDetails == null)
+        TournamentDetails? tournament = await _context.TournamentDetails.FindAsync(id);
+
+        if (tournament == null)
         {
             throw new InvalidOperationException($"Tournament with ID {id} not found.");
         }
-        return tournamentDetails;
+
+        return tournament;
     }
 
-    public async Task<IEnumerable<TournamentDetails>> GetAllAsync()
+    public async Task<IEnumerable<TournamentDetails>> GetAllAsync(bool includeGames = false)
     {
-        return await _context.TournamentDetails.Include(t => t.Games).ToListAsync();
+        return includeGames ? await _context.TournamentDetails.Include(t => t.Games).ToListAsync()
+                            : await _context.TournamentDetails.ToListAsync();
     }
 
     public async Task<bool> AnyAsync(int id)
@@ -44,13 +47,13 @@ public class TournamentRepository : ITournamentRepository
         return await _context.TournamentDetails.AnyAsync(t => t.Id == id);
     }
 
-    public void Update(TournamentDetails tournamentDetails)
+    public void Update(TournamentDetails tournament)
     {
-        _context.Update(tournamentDetails);
+        _context.Update(tournament);
     }
 
-    public void Remove(TournamentDetails tournamentDetails)
+    public void Remove(TournamentDetails tournament)
     {
-        _context.Remove(tournamentDetails);
+        _context.Remove(tournament);
     }
 }

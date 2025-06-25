@@ -14,7 +14,7 @@ using Tournament.Core.Dto;
 
 namespace Tournament.Api.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/tournaments")]
 [ApiController]
 public class TournamentDetailsController : ControllerBase
 {
@@ -30,11 +30,14 @@ public class TournamentDetailsController : ControllerBase
 
     // GET: api/TournamentDetails
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TournamentDto>>> GetTournamentDetails()
+    public async Task<ActionResult<IEnumerable<TournamentDto>>> GetTournament(bool includeGames)
     {
         // Fetch all Tournament entities and map them to a list of TournamentDto objects
-        var tournaments = _mapper.Map<IEnumerable<TournamentDto>>
-            (await _unitOfWork.TournamentRepository.GetAllAsync());
+        var tournaments = includeGames 
+            ? _mapper.Map<IEnumerable<TournamentDto>>
+                (await _unitOfWork.TournamentRepository.GetAllAsync(true))
+            : _mapper.Map<IEnumerable<TournamentDto>>
+                (await _unitOfWork.TournamentRepository.GetAllAsync());
 
         // Return a 200 OK response with the list of tournaments DTOs
         return Ok(tournaments);
@@ -42,9 +45,8 @@ public class TournamentDetailsController : ControllerBase
 
     // GET: api/TournamentDetails/5
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<TournamentDto>> GetTournamentDetails(int id)
+    public async Task<ActionResult<TournamentDto>> GetTournament(int id)
     {
-        // Get the Tournament entity with the assigned ID
         TournamentDetails? tournament = await _unitOfWork.TournamentRepository.GetAsync(id);
 
         if (tournament == null)
@@ -62,7 +64,7 @@ public class TournamentDetailsController : ControllerBase
     // PUT: api/TournamentDetails/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutTournamentDetails(int id, UpdateTournamentDto dto)
+    public async Task<IActionResult> UpdateTournament(int id, UpdateTournamentDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -100,7 +102,7 @@ public class TournamentDetailsController : ControllerBase
     // POST: api/TournamentDetails
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
-    public async Task<ActionResult<TournamentDetails>> PostTournamentDetails(TournamentDto dto)
+    public async Task<ActionResult<TournamentDetails>> CreateTournament(CreateTournamentDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -126,12 +128,12 @@ public class TournamentDetailsController : ControllerBase
         var createdTournament = _mapper.Map<TournamentDto>(tournament);
 
         // Return 201 Created with a link to the new resource and the created DTO
-        return CreatedAtAction(nameof(GetTournamentDetails), new { id = tournament.Id }, createdTournament);
+        return CreatedAtAction(nameof(GetTournament), new { id = tournament.Id }, createdTournament);
     }
 
     // DELETE: api/TournamentDetails/5
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteTournamentDetails(int id)
+    public async Task<IActionResult> DeleteTournament(int id)
     {
         // Get the Tournament entity with the assigned ID
         var tournament = await _unitOfWork.TournamentRepository.GetAsync(id);

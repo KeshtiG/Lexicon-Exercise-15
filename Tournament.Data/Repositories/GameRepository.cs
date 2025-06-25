@@ -19,17 +19,20 @@ public class GameRepository : IGameRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Game>> GetAllAsync()
+    public async Task<IEnumerable<Game>> GetAllAsync(int tournamentId)
     {
-        return await _context.Games.ToListAsync();
+        return await _context.Games.Where(g => g.TournamentId.Equals(tournamentId)).ToListAsync();
     }
 
-    public async Task<Game> GetAsync(int id)
+    public async Task<Game> GetAsync(int id, int tournamentId)
     {
-        var game = await _context.Games.FindAsync(id);
+        Game? game = await _context.Games
+            .Where(g => g.Id == id && g.TournamentId == tournamentId)
+            .FirstOrDefaultAsync();
+
         if (game == null)
         {
-            throw new InvalidOperationException($"Game with ID {id} not found.");
+            throw new InvalidOperationException($"Game with ID {id} not found in tournament.");
         }
 
         return game;
