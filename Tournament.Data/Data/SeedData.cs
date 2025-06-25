@@ -18,13 +18,13 @@ public class SeedData
         var faker = new Faker<TournamentDetails>("sv").Rules((f, t) =>
         {
             // Create an array with first words
-            var firstWords = new[] { "Shadow", "Pixel", "Turbo", "Quantum", "Glitch", "Crimson", "Rogue", "Neon", "Savage", "Frozen" };
+            var firstWords = new[] { "Shadow", "Pixel", "Turbo", "Quantum", "Glitch", "Crimson", "Rogue", "Warrior", "Savage", "Frozen" };
 
             // Create an array with second words
-            var secondWords = new[] { "Cup", "Clash", "Open", "Invitational", "Showdown", "League", "Throwdown", "Rumble", "International" };
+            var lastWords = new[] { "Cup", "Clash", "Open", "Invitational", "Showdown", "League", "Throwdown", "Rumble", "International", "Arena" };
 
             // Create a title with a random pair of first and second words
-            t.Title = $"{f.PickRandom(firstWords)} {f.PickRandom(secondWords)}";
+            t.Title = $"{f.PickRandom(firstWords)} {f.PickRandom(lastWords)}";
 
             // Set start date to between today and 1 year from now
             t.StartDate = f.Date.Between(DateTime.Today, DateTime.Today.AddYears(1));
@@ -41,14 +41,17 @@ public class SeedData
 
     public static ICollection<Game>? GenerateGames(int numGames, DateTime startDate, DateTime endDate)
     {
-        // Create an array with game names
-        string[] games = { "Galactic Showdown", "Pixel Pioneers", "Turbo Turtles", "Mystic Arena", "Robo Rumble", "Shadow Sprint", "Neon Knights", "Quest Questers", "Dragon Dash", "Cosmic Clash", "Edge Lords", "Gutter George", "Dragon Hex" };
-
         // Create a new Faker
         var faker = new Faker<Game>("sv").Rules((f, g) =>
         {
+            // Create an array with first words
+            var firstWords = new[] { "Galactic", "Gigantic", "Turbo", "Mystic", "Robo", "Shadow", "Neon", "Dragon", "Cosmic", "Edge", "Gutter", "Terrible", "Fall", "Battle", "Dynasty" };
+
+            // Create an array with second words
+            var lastWords = new[] { "Showdown", "Pioneers", "Turtles", "Arena", "Rumble", "Sprint", "Knights", "Questers", "Dash", "Clash", "Lords", "Hex", "Legion", "Crystal", "Dungeon" };
+
             // Set title to a random name from the array
-            g.Title = f.PickRandom(games);
+            g.Title = $"{f.PickRandom(firstWords)} {f.PickRandom(lastWords)}";
 
             // Set start date between tournament's start and end dates
             g.StartDate = f.Date.Between(startDate, endDate);

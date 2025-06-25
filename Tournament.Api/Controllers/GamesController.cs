@@ -8,6 +8,7 @@ using Tournament.Core.Entities;
 using AutoMapper;
 using Tournament.Core.Repositories;
 using Tournament.Core.Dto;
+using Microsoft.EntityFrameworkCore;
 
 namespace Tournament.Api.Controllers;
 
@@ -18,7 +19,7 @@ public class GamesController : ControllerBase
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
 
-    // Constructor
+    // Constructor with depencency injections
     public GamesController(IUnitOfWork unitOfWork, IMapper mapper)
     {
         _unitOfWork = unitOfWork;
@@ -45,7 +46,7 @@ public class GamesController : ControllerBase
 
         if (game == null)
         {
-            return NotFound();
+            return NotFound($"A game with the ID {id} could not be found.");
         }
 
         // Convert the Game entity to a GameDto using AutoMapper
@@ -59,22 +60,34 @@ public class GamesController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> PutGame(int id, UpdateGameDto dto)
     {
-        // Get the Game entity with the assigned ID
-        var existingGame = await _unitOfWork.GameRepository.GetAsync(id);
-
-        if (existingGame == null)
+        if (!ModelState.IsValid)
         {
-            return NotFound("Game does not exist");
+            // If validation errors occured: return a list of error messages
+            return BadRequest(ModelState);
+        }
+
+        // Get the Game entity with the assigned ID
+        Game? game = await _unitOfWork.GameRepository.GetAsync(id);
+
+        if (game == null)
+        {
+            return NotFound($"A game with the ID {id} could not be found.");
         }
 
         // Update existingGame with values from DTO
-        _mapper.Map(dto, existingGame);
+        _mapper.Map(dto, game);
 
-        // Mark the entity as modified in the repository so changes are tracked for saving
-        _unitOfWork.GameRepository.Update(existingGame);
-
-        // Save changes to the database
-        await _unitOfWork.CompleteAsync();
+        try
+        {
+            // Mark the entity as modified in the repository so changes are tracked for saving
+            _unitOfWork.GameRepository.Update(game);
+            // Try to save changes to the database
+            await _unitOfWork.CompleteAsync();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Unexpected error: {ex.Message}");
+        }
 
         return NoContent();
     }
@@ -84,18 +97,31 @@ public class GamesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Game>> PostGame(GameDto dto)
     {
+        if (!ModelState.IsValid)
+        {
+            // If validation errors occured: return a list of error messages
+            return BadRequest(ModelState);
+        }
+
         // Convert DTO to a Game entity
         var game = _mapper.Map<Game>(dto);
 
-        // Add the entity to the list of Games and save changes
-        _unitOfWork.GameRepository.Add(game);
-        await _unitOfWork.CompleteAsync();
+        try
+        {
+            // Try to add the entity to the list of Games and save changes
+            _unitOfWork.GameRepository.Add(game);
+            await _unitOfWork.CompleteAsync();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Unexpected error: {ex.Message}");
+        }
 
         // Map the saved entity back to a DTO
         var createdGame = _mapper.Map<GameDto>(game);
 
-        // Return a response with a location header for the new entity
-        return CreatedAtAction(nameof(GetGame), new { id = game.Id }, game);
+        // Return 201 Created with a link to the new resource and the created DTO
+        return CreatedAtAction(nameof(GetGame), new { id = game.Id }, createdGame);
     }
 
     // DELETE: api/Games/5
@@ -107,18 +133,20 @@ public class GamesController : ControllerBase
 
         if (game == null)
         {
-            return NotFound("Game not found.");
+            return NotFound($"A game with the ID {id} could not be found.");
         }
 
-        // Remove the entity from the database and save changes
-        _unitOfWork.GameRepository.Remove(game);
-        await _unitOfWork.CompleteAsync();
+        try
+        {
+            // Try to remove the entity from the database and save changes
+            _unitOfWork.GameRepository.Remove(game);
+            await _unitOfWork.CompleteAsync();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Unexpected error: {ex.Message}");
+        }
 
         return NoContent();
     }
-
-    //private bool GameExists(int id)
-    //{
-    //    return _context.Games.Any(e => e.Id == id);
-    //}
 }
