@@ -11,16 +11,15 @@ namespace Tournament.Data.Data;
 
 public class TournamentMappings : Profile
 {
-
     public TournamentMappings()
     {
         // Set up mapping between DTOs and entities for tournaments and games
         CreateMap<GameDto, Game>().ReverseMap();
-        CreateMap<UpdateGameDto, Game>();
+        CreateMap<UpdateGameDto, Game>().ReverseMap();
         CreateMap<CreateGameDto, Game>();
 
         CreateMap<TournamentDto, TournamentDetails>().ReverseMap();
-        CreateMap<UpdateTournamentDto, TournamentDetails>();
+        CreateMap<UpdateTournamentDto, TournamentDetails>().ReverseMap();
         CreateMap<CreateTournamentDto, TournamentDetails>();
     }
 }

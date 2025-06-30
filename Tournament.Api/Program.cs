@@ -25,12 +25,13 @@ namespace Tournament.Api
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            // 
+            // Register NewtonsoftJason, return HttpNotAcceptable if media type is not Json
             builder.Services.AddControllers(opt => opt.ReturnHttpNotAcceptable = true)
                 .AddNewtonsoftJson(options =>
                 {
                     options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
                 })
+                // Add support for XML
                 .AddXmlDataContractSerializerFormatters();
 
             // Registers UnitOfWork as a scoped service for dependency injection

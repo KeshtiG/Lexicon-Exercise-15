@@ -18,5 +18,5 @@ public record TournamentDto
     }
 
     // Collection of associated GameDto objects
-    public IEnumerable<GameDto> Games { get; init; }
+    public IEnumerable<GameDto>? Games { get; init; }
 }

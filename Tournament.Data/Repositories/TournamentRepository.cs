@@ -24,14 +24,9 @@ public class TournamentRepository : ITournamentRepository
         _context.Add(tournament);
     }
 
-    public async Task<TournamentDetails> GetAsync(int id)
+    public async Task<TournamentDetails?> GetAsync(int id)
     {
         TournamentDetails? tournament = await _context.TournamentDetails.FindAsync(id);
-
-        if (tournament == null)
-        {
-            throw new InvalidOperationException($"Tournament with ID {id} not found.");
-        }
 
         return tournament;
     }

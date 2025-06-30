@@ -24,18 +24,20 @@ public class GameRepository : IGameRepository
         return await _context.Games.Where(g => g.TournamentId.Equals(tournamentId)).ToListAsync();
     }
 
-    public async Task<Game> GetAsync(int id, int tournamentId)
+    public async Task<Game?> GetAsync(int id, int tournamentId)
     {
-        Game? game = await _context.Games
+        return await _context.Games
             .Where(g => g.Id == id && g.TournamentId == tournamentId)
             .FirstOrDefaultAsync();
+    }
 
-        if (game == null)
-        {
-            throw new InvalidOperationException($"Game with ID {id} not found in tournament.");
-        }
+    public async Task<IEnumerable<Game>> GetByTitleAsync(string title, int tournamentId)
+    {
+        var games = await _context.Games
+            .Where(g => g.Title == title && g.TournamentId == tournamentId)
+            .ToListAsync();
 
-        return game;
+        return games;
     }
 
     public async Task<bool> AnyAsync(int id)

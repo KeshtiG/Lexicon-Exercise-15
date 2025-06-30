@@ -4,13 +4,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Tournament.Data.Data;
 using Tournament.Core.Entities;
-using Tournament.Data.Repositories;
 using Tournament.Core.Repositories;
 using AutoMapper;
 using Tournament.Core.Dto;
+using Azure;
+using Microsoft.AspNetCore.JsonPatch;
 
 namespace Tournament.Api.Controllers;
 
@@ -33,11 +33,16 @@ public class TournamentDetailsController : ControllerBase
     public async Task<ActionResult<IEnumerable<TournamentDto>>> GetTournament(bool includeGames)
     {
         // Fetch all Tournament entities and map them to a list of TournamentDto objects
-        var tournaments = includeGames 
+        var tournaments = includeGames
             ? _mapper.Map<IEnumerable<TournamentDto>>
                 (await _unitOfWork.TournamentRepository.GetAllAsync(true))
             : _mapper.Map<IEnumerable<TournamentDto>>
                 (await _unitOfWork.TournamentRepository.GetAllAsync());
+
+        if (!tournaments.Any())
+        {
+            return NotFound();
+        }
 
         // Return a 200 OK response with the list of tournaments DTOs
         return Ok(tournaments);
@@ -63,18 +68,17 @@ public class TournamentDetailsController : ControllerBase
 
     // PUT: api/TournamentDetails/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    [HttpPut("{id}")]
+    [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateTournament(int id, UpdateTournamentDto dto)
     {
         if (!ModelState.IsValid)
         {
-            // If validation errors occured: return a list of error messages
-            return BadRequest(ModelState);
+            // Return validation errors if any
+            return UnprocessableEntity(ModelState);
         }
 
         // Get the Tournament entity with the assigned ID
         var tournament = await _unitOfWork.TournamentRepository.GetAsync(id);
-
         if (tournament == null)
         {
             // Return status code Not Found if the ID could not be found in the database.
@@ -96,7 +100,7 @@ public class TournamentDetailsController : ControllerBase
             return StatusCode(500, $"Unexpected error: {ex.Message}");
         }
 
-        return NoContent(); 
+        return NoContent();
     }
 
     // POST: api/TournamentDetails
@@ -106,8 +110,8 @@ public class TournamentDetailsController : ControllerBase
     {
         if (!ModelState.IsValid)
         {
-            // If validation errors occured: return a list of error messages
-            return BadRequest(ModelState);
+            // Return validation errors if any
+            return UnprocessableEntity(ModelState);
         }
 
         // Convert DTO to a TournamentDetails entity
@@ -132,7 +136,7 @@ public class TournamentDetailsController : ControllerBase
     }
 
     // DELETE: api/TournamentDetails/5
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteTournament(int id)
     {
         // Get the Tournament entity with the assigned ID
@@ -141,13 +145,58 @@ public class TournamentDetailsController : ControllerBase
         if (tournament == null)
         {
             // Return status code Not Found if the ID could not be found in the database.
-            return NotFound($"A tournament with the ID {id} could not be found.");
+            return NotFound($"A tournament with the ID '{id}' could not be found.");
         }
 
         try
         {
             // Try to remove the entity from the database and save changes
             _unitOfWork.TournamentRepository.Remove(tournament);
+            await _unitOfWork.CompleteAsync();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Unexpected error: {ex.Message}");
+        }
+
+        return NoContent();
+    }
+
+    [HttpPatch("{id:int}")]
+    public async Task<ActionResult> PatchTournament(int id, JsonPatchDocument<UpdateTournamentDto> patchDoc)
+    {
+        // Check if the patch document is null and return error if so
+        if (patchDoc is null) return BadRequest("No patch document");
+
+        // Get the Tournament entity with the assigned ID
+        var tournamentToPatch = await _unitOfWork.TournamentRepository.GetAsync(id);
+        if (tournamentToPatch == null)
+        {
+            // Return status code Not Found if the ID could not be found in the database.
+            return NotFound($"A tournament with the ID '{id}' could not be found.");
+        }
+
+        // Map the patched entity back to a DTO
+        var dto = _mapper.Map<UpdateTournamentDto>(tournamentToPatch);
+
+        // Apply the patch document to the DTO
+        patchDoc.ApplyTo(dto, ModelState);
+
+        // Try to validate the patched DTO
+        TryValidateModel(dto);
+
+        if (!ModelState.IsValid)
+        {
+            // Return validation errors if any
+            return UnprocessableEntity(ModelState);
+        }
+
+        // Map updated DTO values back to the entity before saving
+        _mapper.Map(dto, tournamentToPatch);
+
+        try
+        {
+            // Try to save changes to the database
             await _unitOfWork.CompleteAsync();
         }
         catch (Exception ex)

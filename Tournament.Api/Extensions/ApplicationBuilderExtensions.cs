@@ -32,7 +32,7 @@ public static class ApplicationBuilderExtensions
             }
             catch (Exception ex)
             {
-                throw;
+                Console.WriteLine($"Could not seed database: {ex.Message}");
             }
         }
     }
