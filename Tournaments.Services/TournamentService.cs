@@ -7,6 +7,7 @@ using AutoMapper;
 using Services.Contracts;
 using Tournament.Core.Dto;
 using Tournament.Core.Entities;
+using Tournament.Core.Exceptions;
 using Tournament.Core.Repositories;
 
 namespace Tournament.Services;
@@ -32,7 +33,7 @@ public class TournamentService : ITournamentService
         // Check if the list is empty
         if (!tournaments.Any())
         {
-            throw new KeyNotFoundException("No tournaments found.");
+            throw new TournamentsNotFoundException();
         }
 
         // Return the list mapped to DTO:s
@@ -103,18 +104,18 @@ public class TournamentService : ITournamentService
         // Check if the entity exists
         if (tournament == null)
         {
-            throw new KeyNotFoundException($"Tournament with ID '{id}' not found.");
+            throw new TournamentNotFoundException(id);
         }
         return tournament;
     }
 
-    public async Task EnsureTournamentExists(int id)
-    {
-        bool tournamentExists = await _unitOfWork.TournamentRepository.AnyAsync(id);
+    //public async Task EnsureTournamentExists(int id)
+    //{
+    //    bool tournamentExists = await _unitOfWork.TournamentRepository.AnyAsync(id);
 
-        if (!tournamentExists)
-        {
-            throw new KeyNotFoundException($"No tournament with the ID '{id}' could be found.");
-        }
-    }
+    //    if (!tournamentExists)
+    //    {
+    //        throw new TournamentNotFoundException(id);
+    //    }
+    //}
 }

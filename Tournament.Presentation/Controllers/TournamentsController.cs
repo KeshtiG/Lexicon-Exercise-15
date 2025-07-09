@@ -8,6 +8,7 @@ using Tournament.Core.Dto;
 using Services.Contracts;
 using Tournament.Core.Entities;
 using Microsoft.AspNetCore.JsonPatch;
+using Tournament.Core.Exceptions;
 
 namespace Tournament.Presentation.Controllers;
 
@@ -31,7 +32,7 @@ public class TournamentsController : ControllerBase
             var tournaments = await _serviceManager.TournamentService.GetAllAsync(includeGames);
             return Ok(tournaments);
         }
-        catch (KeyNotFoundException ex)
+        catch (TournamentsNotFoundException ex)
         {
             return NotFound(ex.Message);
         }
@@ -50,7 +51,7 @@ public class TournamentsController : ControllerBase
             TournamentDto dto = await _serviceManager.TournamentService.GetAsync(id);
             return Ok(dto);
         }
-        catch (KeyNotFoundException ex)
+        catch (TournamentNotFoundException ex)
         {
             return NotFound(ex.Message);
         }
@@ -75,7 +76,7 @@ public class TournamentsController : ControllerBase
             await _serviceManager.TournamentService.UpdateTournamentAsync(id, dto);
             return NoContent();
         }
-        catch (KeyNotFoundException ex)
+        catch (TournamentNotFoundException ex)
         {
             return NotFound(ex.Message);
         }
@@ -116,7 +117,7 @@ public class TournamentsController : ControllerBase
             await _serviceManager.TournamentService.DeleteTournament(id);
             return NoContent();
         }
-        catch (KeyNotFoundException ex)
+        catch (TournamentNotFoundException ex)
         {
             return NotFound(ex.Message);
         }

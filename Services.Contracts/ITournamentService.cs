@@ -17,5 +17,5 @@ public interface ITournamentService
     Task<UpdateTournamentDto> TournamentToPatchAsync(int id);
     Task<TournamentDto> CreateTournamentAsync(CreateTournamentDto dto);
     Task DeleteTournament(int id);
-    Task EnsureTournamentExists(int id);
+    //Task EnsureTournamentExists(int id);
 }

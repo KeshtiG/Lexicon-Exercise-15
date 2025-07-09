@@ -7,6 +7,7 @@ using AutoMapper;
 using Services.Contracts;
 using Tournament.Core.Dto;
 using Tournament.Core.Entities;
+using Tournament.Core.Exceptions;
 using Tournament.Core.Repositories;
 
 namespace Tournament.Services;
@@ -31,14 +32,14 @@ public class GameService : IGameService
         // Check if the list is empty
         if (!games.Any())
         {
-            throw new KeyNotFoundException($"No games found in tournament with ID '{tournamentId}'.");
+            throw new GamesNotFoundException(tournamentId);
         }
 
         // Return list as DTO:s
         return _mapper.Map<IEnumerable<GameDto>>(games);
     }
 
-    public async Task<GameDto> GetAsync(int id, int tournamentId)
+    public async Task<GameDto> GetByIdAsync(int id, int tournamentId)
     {
         // Fetch entity
         Game? game = await GetEntityAsync(id, tournamentId);
@@ -55,7 +56,7 @@ public class GameService : IGameService
         // Check if the list is empty
         if (!games.Any())
         {
-            throw new KeyNotFoundException($"No games with title '{title}' found in tournament with ID '{tournamentId}'.");
+            throw new GameTitleNotFoundException(title, tournamentId);
         }
 
         // Return list as DTO:s
@@ -118,7 +119,7 @@ public class GameService : IGameService
         // Check if the entity exists
         if (game == null)
         {
-            throw new KeyNotFoundException($"Game with ID '{id}' not found in tournament with ID '{tournamentId}'.");
+            throw new GameNotFoundException(id, tournamentId);
         }
         return game;
     }

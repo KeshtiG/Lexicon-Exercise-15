@@ -45,6 +45,8 @@ public class Program
 
         var app = builder.Build();
 
+        app.ConfigureExceptionHandler();
+
         // Call async method to populate the database with initial seed data
         await app.SeedDataAsync();
 

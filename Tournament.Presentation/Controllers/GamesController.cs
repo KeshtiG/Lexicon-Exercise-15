@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Services.Contracts;
 using Tournament.Core.Dto;
 using Tournament.Core.Entities;
+using Tournament.Core.Exceptions;
 
 namespace Tournament.Presentation.Controllers;
 
@@ -23,13 +24,23 @@ public class GamesController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<GameDto>>> GetGames(int tournamentId)
     {
+        // Check if the tournament exists in the database, return error message if not
         try
         {
-            // Try to fetch list of Games
+            await _serviceManager.TournamentService.GetEntityAsync(tournamentId);
+        }
+        catch (TournamentNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+
+        // Try to fetch list of Games
+        try
+        {
             var gameDtos = await _serviceManager.GameService.GetAllAsync(tournamentId);
             return Ok(gameDtos);
         }
-        catch (KeyNotFoundException ex)
+        catch (GamesNotFoundException ex)
         {
             return NotFound(ex.Message);
         }
@@ -48,7 +59,7 @@ public class GamesController : ControllerBase
             var gameDtos = await _serviceManager.GameService.GetByTitleAsync(title, tournamentId);
             return Ok(gameDtos);
         }
-        catch (KeyNotFoundException ex)
+        catch (GameTitleNotFoundException ex)
         {
             return NotFound(ex.Message);
         }
@@ -64,10 +75,10 @@ public class GamesController : ControllerBase
         try
         {
             // Try to fetch Game by ID
-            GameDto dto = await _serviceManager.GameService.GetAsync(id, tournamentId);
+            GameDto dto = await _serviceManager.GameService.GetByIdAsync(id, tournamentId);
             return Ok(dto);
         }
-        catch (KeyNotFoundException ex)
+        catch (GameNotFoundException ex)
         {
             return NotFound(ex.Message);
         }
@@ -89,9 +100,9 @@ public class GamesController : ControllerBase
         // Check if the tournament exists in the database, return error message if not
         try
         {
-            await _serviceManager.TournamentService.EnsureTournamentExists(tournamentId);
+            await _serviceManager.TournamentService.GetEntityAsync(tournamentId);
         }
-        catch (KeyNotFoundException ex)
+        catch (TournamentNotFoundException ex)
         {
             return NotFound(ex.Message);
         }
@@ -102,7 +113,7 @@ public class GamesController : ControllerBase
             await _serviceManager.GameService.UpdateGameAsync(id, tournamentId, dto);
             return NoContent();
         }
-        catch (KeyNotFoundException ex)
+        catch (GameNotFoundException ex)
         {
             return NotFound(ex.Message);
         }
@@ -124,9 +135,9 @@ public class GamesController : ControllerBase
         // Check if the tournament exists in the database, return error message if not
         try
         {
-            await _serviceManager.TournamentService.EnsureTournamentExists(tournamentId);
+            await _serviceManager.TournamentService.GetEntityAsync(tournamentId);
         }
-        catch (KeyNotFoundException ex)
+        catch (TournamentNotFoundException ex)
         {
             return NotFound(ex.Message);
         }
