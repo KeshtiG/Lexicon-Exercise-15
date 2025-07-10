@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Services.Contracts;
 using Tournament.Core.Dto;
@@ -21,108 +22,37 @@ public class GamesController : ControllerBase
         _serviceManager = serviceManager;
     }
 
+    // GET ALL GAMES
     [HttpGet]
     public async Task<ActionResult<IEnumerable<GameDto>>> GetGames(int tournamentId)
     {
-        // Check if the tournament exists in the database, return error message if not
-        try
-        {
-            await _serviceManager.TournamentService.GetEntityAsync(tournamentId);
-        }
-        catch (TournamentNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        // Checks if the tournament exists, returns error message if not
+        await _serviceManager.TournamentService.EnsureTournamentExists(tournamentId);
 
-        // Try to fetch list of Games
-        try
-        {
-            var gameDtos = await _serviceManager.GameService.GetAllAsync(tournamentId);
-            return Ok(gameDtos);
-        }
-        catch (GamesNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Unexpected error: {ex.Message}");
-        }
+        // Fetch list of Games
+        var gameDtos = await _serviceManager.GameService.GetAllAsync(tournamentId);
+        return Ok(gameDtos);
     }
 
+    // GET GAME BY TITLE
     [HttpGet("{title}")]
     public async Task<ActionResult<IEnumerable<GameDto>>> GetGameByTitle(string title, int tournamentId)
     {
-        try
-        {
-            // Try to fetch Game by Title
-            var gameDtos = await _serviceManager.GameService.GetByTitleAsync(title, tournamentId);
-            return Ok(gameDtos);
-        }
-        catch (GameTitleNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Unexpected error: {ex.Message}");
-        }
+        // Fetch Game by Title
+        var gameDtos = await _serviceManager.GameService.GetByTitleAsync(title, tournamentId);
+        return Ok(gameDtos);
     }
 
+    // GET GAME BY ID
     [HttpGet("{id:int}")]
     public async Task<ActionResult<GameDto>> GetGameById(int id, int tournamentId)
     {
-        try
-        {
-            // Try to fetch Game by ID
-            GameDto dto = await _serviceManager.GameService.GetByIdAsync(id, tournamentId);
-            return Ok(dto);
-        }
-        catch (GameNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Unexpected error: {ex.Message}");
-        }
+        // Fetch Game by ID
+        GameDto dto = await _serviceManager.GameService.GetByIdAsync(id, tournamentId);
+        return Ok(dto);
     }
 
-    [HttpPut("{id:int}")]
-    public async Task<IActionResult> UpdateGame(int id, UpdateGameDto dto, int tournamentId)
-    {
-        if (!ModelState.IsValid)
-        {
-            // Return validation errors if any
-            return UnprocessableEntity(ModelState);
-        }
-
-        // Check if the tournament exists in the database, return error message if not
-        try
-        {
-            await _serviceManager.TournamentService.GetEntityAsync(tournamentId);
-        }
-        catch (TournamentNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-
-        // Try to update entity in database and save changes
-        try
-        {
-            await _serviceManager.GameService.UpdateGameAsync(id, tournamentId, dto);
-            return NoContent();
-        }
-        catch (GameNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Unexpected error: {ex.Message}");
-        }
-    }
-
+    // CREATE GAME
     [HttpPost]
     public async Task<ActionResult<Game>> CreateGame(CreateGameDto dto, int tournamentId)
     {
@@ -132,250 +62,68 @@ public class GamesController : ControllerBase
             return UnprocessableEntity(ModelState);
         }
 
-        // Check if the tournament exists in the database, return error message if not
-        try
-        {
-            await _serviceManager.TournamentService.GetEntityAsync(tournamentId);
-        }
-        catch (TournamentNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        // Checks if the tournament exists, returns error message if not
+        await _serviceManager.TournamentService.EnsureTournamentExists(tournamentId);
 
-        try
-        {
-            // Try to add the entity to the list of Tournaments and save changes
-            var createdGame = await _serviceManager.GameService.CreateGameAsync(dto, tournamentId);
-            // Return 201 Created with a link to the new resource and the created DTO
-            return CreatedAtAction(nameof(GetGameById), new { tournamentId = createdGame.TournamentId, id = createdGame.Id }, createdGame);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Unexpected error: {ex.Message}");
-        }
+        // Add the entity to the list of Tournaments and save changes
+        var createdGame = await _serviceManager.GameService.CreateGameAsync(dto, tournamentId);
+
+        // Return 201 Created with a link to the new resource and the created DTO
+        return CreatedAtAction(nameof(GetGameById), new { tournamentId = createdGame.TournamentId, id = createdGame.Id }, createdGame);
     }
 
+    // UPDATE GAME
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> UpdateGame(int id, UpdateGameDto dto, int tournamentId)
+    {
+        if (!ModelState.IsValid)
+        {
+            // Return validation errors if any
+            return UnprocessableEntity(ModelState);
+        }
 
+        // Checks if the tournament exists, returns error message if not
+        await _serviceManager.TournamentService.EnsureTournamentExists(tournamentId);
 
+        // Uupdate entity in the database and save changes
+        await _serviceManager.GameService.UpdateGameAsync(id, tournamentId, dto);
+        return NoContent();
+    }
 
-    //private readonly IUnitOfWork _unitOfWork;
-    //private readonly IMapper _mapper;
+    // PATCH GAME
+    [HttpPatch("{id:int}")]
+    public async Task<ActionResult> PatchGame(int id, int tournamentId, JsonPatchDocument<UpdateGameDto> patchDoc)
+    {
+        // Check if the patch document is null and return error if so
+        if (patchDoc is null) return BadRequest("No valid patch document found.");
 
-    // Constructor with depencency injections
-    //public GamesController(IUnitOfWork unitOfWork, IMapper mapper)
-    //{
-    //    _unitOfWork = unitOfWork;
-    //    _mapper = mapper;
-    //}
+        // Fetch the tournament to patch (mapped to a DTO)
+        var dto = await _serviceManager.GameService.GameToPatchAsync(id, tournamentId);
 
-    // GET: api/Games
-    //[HttpGet]
-    //public async Task<ActionResult<IEnumerable<GameDto>>> GetGames(int tournamentId)
-    //{
-    //    // Check if the tournament exists in the database, return error message if not
-    //    var tournamentExists = await _unitOfWork.TournamentRepository.AnyAsync(tournamentId);
-    //    if (!tournamentExists)
-    //    {
-    //        return NotFound($"A tournament with the ID '{tournamentId}' could not be found.");
-    //    }
+        // Apply the patch document to the DTO
+        patchDoc.ApplyTo(dto, ModelState);
 
-    //    // Map all games from the database to a list of GameDto objects
-    //    var games = _mapper.Map<IEnumerable<GameDto>>
-    //        (await _unitOfWork.GameRepository.GetAllAsync(tournamentId));
+        // Try to validate the patched DTO
+        TryValidateModel(dto);
 
-    //    if (!games.Any())
-    //    {
-    //        return NotFound($"No games could be found for the tournament with ID '{tournamentId}'.");
-    //    }
+        if (!ModelState.IsValid)
+        {
+            // Return validation errors if any
+            return UnprocessableEntity(ModelState);
+        }
 
-    //    return Ok(games);
-    //}
+        // Update the entity in the database
+        await _serviceManager.GameService.UpdateGameAsync(id, tournamentId, dto);
 
-    //// GET: api/Games/5
-    //[HttpGet("{title}")]
-    //public async Task<ActionResult<IEnumerable<GameDto>>> GetGame(string title, int tournamentId)
-    //{
-    //    // Check if the tournament exists in the database, return error message if not
-    //    var tournamentExists = await _unitOfWork.TournamentRepository.AnyAsync(tournamentId);
-    //    if (!tournamentExists)
-    //    {
-    //        return NotFound($"A tournament with the ID '{tournamentId}' could not be found.");
-    //    }
+        return NoContent();
+    }
 
-    //    // Get the Game entity with the assigned title
-    //    var games = _mapper.Map<IEnumerable<GameDto>>(await _unitOfWork.GameRepository.GetByTitleAsync(title, tournamentId));
-
-    //    if (!games.Any())
-    //    {
-    //        return NotFound($"No game with the title '{title}' could be found in tournament with ID '{tournamentId}'.");
-    //    }
-
-    //    return Ok(games);
-    //}
-
-    //// PUT: api/Games/5
-    //// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    //[HttpPut("{id:int}")]
-    //public async Task<IActionResult> UpdateGame(int id, UpdateGameDto dto, int tournamentId)
-    //{
-    //    if (!ModelState.IsValid)
-    //    {
-    //        // Return validation errors if any
-    //        return UnprocessableEntity(ModelState);
-    //    }
-
-    //    // Check if the tournament exists in the database, return error message if not
-    //    var tournamentExists = await _unitOfWork.TournamentRepository.AnyAsync(tournamentId);
-    //    if (!tournamentExists)
-    //    {
-    //        return NotFound($"A tournament with the ID '{tournamentId}' could not be found.");
-    //    }
-
-    //    // Get the Game entity with the assigned ID
-    //    Game? game = await _unitOfWork.GameRepository.GetAsync(id, tournamentId);
-
-    //    if (game == null)
-    //    {
-    //        return NotFound($"Game with ID '{id}' not found in tournament with ID '{tournamentId}'.");
-    //    }
-
-    //    // Update existingGame with values from DTO
-    //    _mapper.Map(dto, game);
-
-    //    try
-    //    {
-    //        // Mark the entity as modified in the repository so changes are tracked for saving
-    //        _unitOfWork.GameRepository.Update(game);
-    //        // Try to save changes to the database
-    //        await _unitOfWork.CompleteAsync();
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return StatusCode(500, $"Unexpected error: {ex.Message}");
-    //    }
-
-    //    return NoContent();
-    //}
-
-    //// POST: api/Games
-    //// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    //[HttpPost]
-    //public async Task<ActionResult<Game>> CreateGame(CreateGameDto dto, int tournamentId)
-    //{
-    //    // Check if the tournament exists in the database, return error message if not
-    //    var tournamentExists = await _unitOfWork.TournamentRepository.AnyAsync(tournamentId);
-    //    if (!tournamentExists)
-    //    {
-    //        return NotFound($"A tournament with the ID '{tournamentId}' could not be found.");
-    //    }
-
-    //    if (!ModelState.IsValid)
-    //    {
-    //        // Return validation errors if any
-    //        return UnprocessableEntity(ModelState);
-    //    }
-
-    //    // Convert DTO to a Game entity
-    //    var game = _mapper.Map<Game>(dto);
-    //    game.TournamentId = tournamentId;
-
-    //    try
-    //    {
-    //        // Try to add the entity to the list of Games and save changes
-    //        _unitOfWork.GameRepository.Add(game);
-    //        await _unitOfWork.CompleteAsync();
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return StatusCode(500, $"Unexpected error: {ex.Message}");
-    //    }
-
-    //    // Map the saved entity back to a DTO
-    //    var createdGame = _mapper.Map<GameDto>(game);
-
-    //    // Return 201 Created with a link to the new resource and the created DTO
-    //    return CreatedAtAction(nameof(GetGame), new { id = game.Id, tournamentId = game.TournamentId }, createdGame);
-    //}
-
-    //// DELETE: api/Games/5
-    //[HttpDelete("{id:int}")]
-    //public async Task<IActionResult> DeleteGame(int id, int tournamentId)
-    //{
-    //    // Check if the tournament exists in the database, return error message if not
-    //    var tournamentExists = await _unitOfWork.TournamentRepository.AnyAsync(tournamentId);
-    //    if (!tournamentExists)
-    //    {
-    //        return NotFound($"A tournament with the ID '{tournamentId}' could not be found.");
-    //    }
-
-    //    // Get the Game entity with the assigned ID
-    //    var game = await _unitOfWork.GameRepository.GetAsync(id, tournamentId);
-    //    if (game == null)
-    //    {
-    //        return NotFound($"Game with ID '{id}' not found in tournament with ID '{tournamentId}'.");
-    //    }
-
-    //    try
-    //    {
-    //        // Try to remove the entity from the database and save changes
-    //        _unitOfWork.GameRepository.Remove(game);
-    //        await _unitOfWork.CompleteAsync();
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return StatusCode(500, $"Unexpected error: {ex.Message}");
-    //    }
-
-    //    return NoContent();
-    //}
-
-    //[HttpPatch("{id:int}")]
-    //public async Task<ActionResult> PatchGame(int tournamentId, int id, JsonPatchDocument<UpdateGameDto> patchDoc)
-    //{
-    //    // Check if the patch document is null and return error if so
-    //    if (patchDoc is null) return BadRequest("No patch document");
-
-    //    // Check if the tournament exists in the database, return error message if not
-    //    var tournamentExists = await _unitOfWork.TournamentRepository.AnyAsync(tournamentId);
-    //    if (!tournamentExists)
-    //    {
-    //        return NotFound($"A tournament with the ID '{tournamentId}' could not be found.");
-    //    }
-
-    //    var gameToPatch = await _unitOfWork.GameRepository.GetAsync(id, tournamentId);
-    //    if (gameToPatch == null)
-    //    {
-    //        return NotFound($"Game with ID '{id}' not found in tournament with ID '{tournamentId}'.");
-    //    }
-
-    //    // Map the patched entity back to a DTO
-    //    var dto = _mapper.Map<UpdateGameDto>(gameToPatch);
-
-    //    // Apply the patch document to the DTO
-    //    patchDoc.ApplyTo(dto, ModelState);
-
-    //    // Try to validate the patched DTO
-    //    TryValidateModel(dto);
-
-    //    if (!ModelState.IsValid)
-    //    {
-    //        // Return validation errors if any
-    //        return UnprocessableEntity(ModelState);
-    //    }
-
-    //    // Map updated DTO values back to the entity before saving
-    //    _mapper.Map(dto, gameToPatch);
-
-    //    try
-    //    {
-    //        // Try to save changes to the database
-    //        await _unitOfWork.CompleteAsync();
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return StatusCode(500, $"Unexpected error: {ex.Message}");
-    //    }
-
-    //    return NoContent();
-    //}
+    // DELETE GAME
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteGame(int id, int tournamentId)
+    {
+        // Delete the entity from the database and save changes
+        await _serviceManager.GameService.DeleteGame(id, tournamentId);
+        return NoContent();
+    }
 }

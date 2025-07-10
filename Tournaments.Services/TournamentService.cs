@@ -14,7 +14,7 @@ namespace Tournament.Services;
 
 public class TournamentService : ITournamentService
 {
-    private IUnitOfWork _unitOfWork;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
 
     // Constructor
@@ -44,7 +44,7 @@ public class TournamentService : ITournamentService
     {
         // Fetch entity
         TournamentDetails? tournament = await GetEntityAsync(id);
-
+        
         // Return tournament mapped to DTO
         return _mapper.Map<TournamentDto> (tournament);
     }
@@ -109,13 +109,13 @@ public class TournamentService : ITournamentService
         return tournament;
     }
 
-    //public async Task EnsureTournamentExists(int id)
-    //{
-    //    bool tournamentExists = await _unitOfWork.TournamentRepository.AnyAsync(id);
+    public async Task EnsureTournamentExists(int id)
+    {
+        bool tournamentExists = await _unitOfWork.TournamentRepository.AnyAsync(id);
 
-    //    if (!tournamentExists)
-    //    {
-    //        throw new TournamentNotFoundException(id);
-    //    }
-    //}
+        if (!tournamentExists)
+        {
+            throw new TournamentNotFoundException(id);
+        }
+    }
 }

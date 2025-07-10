@@ -19,17 +19,15 @@ public abstract class NotFoundException : Exception
 
 public class TournamentNotFoundException : NotFoundException
 {
-    public TournamentNotFoundException(int id) : base($"No Tournament with ID '{id}' was found.")
+    public TournamentNotFoundException(int id) : base($"No Tournament with ID '{id}' was found.", "Tournament Not Found")
     {
-        
     }
 }
 
 public class TournamentsNotFoundException : NotFoundException
 {
-    public TournamentsNotFoundException() : base($"No Tournaments were found.")
+    public TournamentsNotFoundException() : base($"No Tournaments were found in the database.", "No Tournaments Found")
     {
-
     }
 }
 
@@ -37,24 +35,22 @@ public class TournamentsNotFoundException : NotFoundException
 
 public class GameNotFoundException : NotFoundException
 {
-    public GameNotFoundException(int id, int tournamentId) : base($"No Game with ID '{id}' was found in Tournament with ID '{tournamentId}'.")
+    public GameNotFoundException(int id, int tournamentId) : base($"No Game with ID '{id}' was found in Tournament with ID '{tournamentId}'.", "Game Not Found")
     {
-
     }
 }
 
 public class GameTitleNotFoundException : NotFoundException
 {
     public GameTitleNotFoundException(string title, int tournamentId)
-        : base($"No Game with title '{title}' was found in Tournament with ID '{tournamentId}'.")
+        : base($"No Game with title '{title}' was found in Tournament with ID '{tournamentId}'.", "Game Title Not Found")
     {
     }
 }
 
 public class GamesNotFoundException : NotFoundException
 {
-    public GamesNotFoundException(int tournamentId) : base($"No Games found in Tournament with ID '{tournamentId}'.")
+    public GamesNotFoundException(int tournamentId) : base($"No Games found in Tournament with ID '{tournamentId}'.", "No Games Found")
     {
-
     }
 }
