@@ -8,7 +8,8 @@ using Tournament.Core.Dto;
 using Services.Contracts;
 using Tournament.Core.Entities;
 using Microsoft.AspNetCore.JsonPatch;
-using Tournament.Core.Exceptions;
+using Tournament.Core.Request;
+using System.Text.Json;
 
 namespace Tournament.Presentation.Controllers;
 
@@ -23,13 +24,16 @@ public class TournamentsController : ControllerBase
         _serviceManager = serviceManager;
     }
 
+
     // GET ALL TOURNAMENTS
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TournamentDto>>> GetTournaments(bool includeGames)
+    public async Task<ActionResult<IEnumerable<TournamentDto>>> GetTournaments([FromQuery]TournamentRequestParams requestParams)
     {
-        // Fetch list of entities from database
-        var tournaments = await _serviceManager.TournamentService.GetAllAsync(includeGames);
-        return Ok(tournaments);
+        var pagedResult = await _serviceManager.TournamentService.GetAllAsync(requestParams);
+
+        Response.Headers.Append("X-Pagination", JsonSerializer.Serialize(pagedResult.metaData));
+
+        return Ok(pagedResult.tournamentDtos);
     }
 
     // GET TOURNAMENT BY ID

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
+using Tournament.Core.Request;
 using Tournament.Data.Data;
 
 namespace Tournament.Data.Repositories;
@@ -19,9 +20,13 @@ public class GameRepository : IGameRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Game>> GetAllAsync(int tournamentId)
+    public async Task<PagedList<Game>> GetAllAsync(int tournamentId, RequestParams requestParams)
     {
-        return await _context.Games.Where(g => g.TournamentId.Equals(tournamentId)).ToListAsync();
+        var games = _context.Games
+            .Where(g => g.TournamentId == tournamentId)
+            .AsQueryable();
+
+        return await PagedList<Game>.CreateAsync(games, requestParams.PageNumber, requestParams.PageSize);
     }
 
     public async Task<Game?> GetAsync(int id, int tournamentId)
@@ -31,13 +36,14 @@ public class GameRepository : IGameRepository
             .FirstOrDefaultAsync();
     }
 
-    public async Task<IEnumerable<Game>> GetByTitleAsync(string title, int tournamentId)
+    public async Task<PagedList<Game>> GetByTitleAsync(int tournamentId, string title, RequestParams requestParams)
     {
-        var games = await _context.Games
-            .Where(g => g.Title == title && g.TournamentId == tournamentId)
-            .ToListAsync();
 
-        return games;
+        var games = _context.Games
+            .Where(g => g.Title == title && g.TournamentId == tournamentId)
+            .AsQueryable();
+
+        return await PagedList<Game>.CreateAsync(games, requestParams.PageNumber, requestParams.PageSize);
     }
 
     public async Task<bool> AnyAsync(int id)

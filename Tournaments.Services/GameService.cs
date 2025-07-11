@@ -9,12 +9,13 @@ using Tournament.Core.Dto;
 using Tournament.Core.Entities;
 using Tournament.Core.Exceptions;
 using Tournament.Core.Repositories;
+using Tournament.Core.Request;
 
 namespace Tournament.Services;
 
 public class GameService : IGameService
 {
-    private IUnitOfWork _unitOfWork;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
 
     // Constructor
@@ -24,19 +25,22 @@ public class GameService : IGameService
         _mapper = mapper;
     }
 
-    public async Task<IEnumerable<GameDto>> GetAllAsync(int tournamentId)
+    public async Task<(IEnumerable<GameDto> gameDtos, MetaData metaData)> GetAllAsync(int tournamentId, RequestParams requestParams)
     {
-        // Fetch list of games by Tournament ID
-        var games = await _unitOfWork.GameRepository.GetAllAsync(tournamentId);
+        // Fetch paged list of entities
+        var pagedList = await _unitOfWork.GameRepository.GetAllAsync(tournamentId, requestParams);
+
+        // Map the paged list of entities to a list of DTOs
+        var gameDtos = _mapper.Map<IEnumerable<GameDto>>(pagedList.Items);
 
         // Check if the list is empty
-        if (!games.Any())
+        if (!gameDtos.Any())
         {
             throw new GamesNotFoundException(tournamentId);
         }
 
-        // Return list as DTO:s
-        return _mapper.Map<IEnumerable<GameDto>>(games);
+        // Return the list of DTOs along with metadata for pagination
+        return (gameDtos, pagedList.MetaData);
     }
 
     public async Task<GameDto> GetByIdAsync(int id, int tournamentId)
@@ -48,19 +52,22 @@ public class GameService : IGameService
         return _mapper.Map<GameDto>(game);
     }
 
-    public async Task<IEnumerable<GameDto>> GetByTitleAsync(string title, int tournamentId)
+    public async Task<(IEnumerable<GameDto> gameDtos, MetaData metaData)> GetByTitleAsync(string title, int tournamentId, RequestParams requestParams)
     {
-        // Fetch list of games by Title & Tournament ID
-        var games = await _unitOfWork.GameRepository.GetByTitleAsync(title, tournamentId);
+        // Fetch paged list of entities by title and ID
+        var pagedList = await _unitOfWork.GameRepository.GetByTitleAsync(tournamentId, title, requestParams);
+
+        // Map the paged list of entities to a list of DTOs
+        var gameDtos = _mapper.Map<IEnumerable<GameDto>>(pagedList.Items);
 
         // Check if the list is empty
-        if (!games.Any())
+        if (!gameDtos.Any())
         {
             throw new GameTitleNotFoundException(title, tournamentId);
         }
 
-        // Return list as DTO:s
-        return _mapper.Map<IEnumerable<GameDto>>(games);
+        // Return the list of DTOs along with metadata for pagination
+        return (gameDtos, pagedList.MetaData);
     }
 
     public async Task UpdateGameAsync(int id, int tournamentId, UpdateGameDto dto)
@@ -80,6 +87,18 @@ public class GameService : IGameService
 
     public async Task<GameDto> CreateGameAsync(CreateGameDto dto, int tournamentId)
     {
+        // Define the maximum number of games allowed
+        int maxGameCount = 10;
+
+        // Get the current count of games in the tournament
+        var gameCount = await _unitOfWork.TournamentRepository.CountGamesAsync(tournamentId);
+
+        // Check if the maximum game count has been reached
+        if (gameCount >= maxGameCount)
+        {
+            throw new GameLimitReachedException(maxGameCount);
+        }
+
         // Convert DTO to a Game entity and set the ID
         var game = _mapper.Map<Game>(dto);
         game.TournamentId = tournamentId;
@@ -116,11 +135,7 @@ public class GameService : IGameService
         // Fetch entity
         Game? game = await _unitOfWork.GameRepository.GetAsync(id, tournamentId);
 
-        // Check if the entity exists
-        if (game == null)
-        {
-            throw new GameNotFoundException(id, tournamentId);
-        }
-        return game;
+        // Return entity or throw exception if not found
+        return game ?? throw new GameNotFoundException(id, tournamentId);
     }
 }

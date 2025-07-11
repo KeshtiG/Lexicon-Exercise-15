@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Tournament.Core.Entities;
 using Tournament.Core.Repositories;
+using Tournament.Core.Request;
 using Tournament.Data.Data;
 
 namespace Tournament.Data.Repositories;
@@ -31,10 +32,19 @@ public class TournamentRepository : ITournamentRepository
         return tournament;
     }
 
-    public async Task<IEnumerable<TournamentDetails>> GetAllAsync(bool includeGames = false)
+    public async Task<PagedList<TournamentDetails>> GetAllAsync(TournamentRequestParams requestParams)
     {
-        return includeGames ? await _context.TournamentDetails.Include(t => t.Games).ToListAsync()
-                            : await _context.TournamentDetails.ToListAsync();
+        // Convert the list to an IQueryable to match the expected argument type for PagedList.CreateAsync
+        var tournaments = requestParams.IncludeGames
+            ? _context.TournamentDetails.Include(t => t.Games).AsQueryable()
+            : _context.TournamentDetails.AsQueryable();
+
+        return await PagedList<TournamentDetails>.CreateAsync(tournaments, requestParams.PageNumber, requestParams.PageSize);
+    }
+
+    public async Task<int> CountGamesAsync(int tournamentId)
+    {
+        return await _context.Games.CountAsync(g => g.TournamentId == tournamentId);
     }
 
     public async Task<bool> AnyAsync(int id)

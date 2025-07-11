@@ -70,6 +70,13 @@ public static class ExceptionMiddleware
                 detail: gamesNotFoundException.Message,
                 instance: context.Request.Path),
 
+            GameLimitReachedException gameLimitReachedException => problemDetailsFactory.CreateProblemDetails(
+                context,
+                StatusCodes.Status409Conflict,
+                title: gameLimitReachedException.Title,
+                detail: gameLimitReachedException.Message,
+                instance: context.Request.Path),
+
             _ => problemDetailsFactory.CreateProblemDetails(
                 context,
                 StatusCodes.Status500InternalServerError,

@@ -9,6 +9,7 @@ using Tournament.Core.Dto;
 using Tournament.Core.Entities;
 using Tournament.Core.Exceptions;
 using Tournament.Core.Repositories;
+using Tournament.Core.Request;
 
 namespace Tournament.Services;
 
@@ -25,19 +26,22 @@ public class TournamentService : ITournamentService
     }
 
 
-    public async Task<IEnumerable<TournamentDto>> GetAllAsync(bool includeGames)
+    public async Task<(IEnumerable<TournamentDto> tournamentDtos, MetaData metaData)> GetAllAsync(TournamentRequestParams requestParams)
     {
-        // Fetch all tournaments from database
-        var tournaments = await _unitOfWork.TournamentRepository.GetAllAsync(includeGames);
+        // Fetch paged list of entities from the repository
+        var pagedList = await _unitOfWork.TournamentRepository.GetAllAsync(requestParams);
+
+        // Map the paged list of entities to a list of DTOs
+        var tournamentDtos = _mapper.Map<IEnumerable<TournamentDto>>(pagedList.Items);
 
         // Check if the list is empty
-        if (!tournaments.Any())
+        if (!tournamentDtos.Any())
         {
             throw new TournamentsNotFoundException();
         }
 
-        // Return the list mapped to DTO:s
-        return _mapper.Map<IEnumerable<TournamentDto>>(tournaments);
+        // Return the list of DTOs along with metadata for pagination
+        return (tournamentDtos, pagedList.MetaData);
     }
 
     public async Task<TournamentDto> GetAsync(int id)
@@ -101,12 +105,8 @@ public class TournamentService : ITournamentService
         // Fetch entity
         TournamentDetails? tournament = await _unitOfWork.TournamentRepository.GetAsync(id);
 
-        // Check if the entity exists
-        if (tournament == null)
-        {
-            throw new TournamentNotFoundException(id);
-        }
-        return tournament;
+        // Return the tournament if it exists, otherwise throw an exception
+        return tournament ?? throw new TournamentNotFoundException(id);
     }
 
     public async Task EnsureTournamentExists(int id)

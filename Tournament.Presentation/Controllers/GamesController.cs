@@ -1,13 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Services.Contracts;
 using Tournament.Core.Dto;
 using Tournament.Core.Entities;
-using Tournament.Core.Exceptions;
+using Tournament.Core.Request;
 
 namespace Tournament.Presentation.Controllers;
 
@@ -24,23 +28,37 @@ public class GamesController : ControllerBase
 
     // GET ALL GAMES
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<GameDto>>> GetGames(int tournamentId)
+    public async Task<ActionResult<IEnumerable<GameDto>>> GetGames(int tournamentId, [FromQuery] GameRequestParams requestParams)
     {
         // Checks if the tournament exists, returns error message if not
         await _serviceManager.TournamentService.EnsureTournamentExists(tournamentId);
 
         // Fetch list of Games
-        var gameDtos = await _serviceManager.GameService.GetAllAsync(tournamentId);
-        return Ok(gameDtos);
+        var pagedResult = await _serviceManager.GameService.GetAllAsync(tournamentId, requestParams);
+
+        // Append pagination metadata to the response headers
+        Response.Headers.Append("X-Pagination", JsonSerializer.Serialize(pagedResult.metaData));
+
+        // Return the list of Game DTOs
+        return Ok(pagedResult.gameDtos);
     }
 
     // GET GAME BY TITLE
-    [HttpGet("{title}")]
-    public async Task<ActionResult<IEnumerable<GameDto>>> GetGameByTitle(string title, int tournamentId)
+    [HttpGet("by-title")]
+    public async Task<ActionResult<IEnumerable<GameDto>>> GetGameByTitle(
+        int tournamentId,
+        [FromQuery] RequestParams requestParams,
+        [FromQuery, BindRequired] string title)
     {
+
         // Fetch Game by Title
-        var gameDtos = await _serviceManager.GameService.GetByTitleAsync(title, tournamentId);
-        return Ok(gameDtos);
+        var pagedResult = await _serviceManager.GameService.GetByTitleAsync(title, tournamentId, requestParams);
+
+        // Append pagination metadata to the response headers
+        Response.Headers.Append("X-Pagination", JsonSerializer.Serialize(pagedResult.metaData));
+
+        // Return the list of Game DTOs
+        return Ok(pagedResult.gameDtos);
     }
 
     // GET GAME BY ID
